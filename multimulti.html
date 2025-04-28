@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Individual Quiz with Leaderboard</title> 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles (minor adjustments) */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .container {
+             max-width: 700px; /* Container width */
+        }
+        .question-block {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border 0.3s ease-in-out;
+        }
+        .option-label {
+            display: block;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            border: 1px solid #e5e7eb;
+        }
+        .option-label:hover {
+            background-color: #e5e7eb;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 0.75rem;
+        }
+         .option-label input[type="radio"]:disabled + span {
+             cursor: default;
+             color: #9ca3af;
+         }
+        .option-label.disabled-option {
+            cursor: default;
+            background-color: #f9fafb; /* Slightly different disabled background */
+            color: #9ca3af;
+            pointer-events: none; /* Prevent clicking */
+             border-color: #e5e7eb;
+        }
+         .option-label.disabled-option:hover {
+             background-color: #f9fafb;
+         }
+
+        /* Style for correct/incorrect feedback */
+        .correct-option-highlight {
+            color: #10b981;
+            font-weight: bold;
+             background-color: #d1fae5;
+             border-color: #10b981;
+        }
+        .incorrect-option-highlight {
+            color: #ef4444;
+            font-weight: bold;
+            background-color: #fee2e2;
+             border-color: #ef4444;
+        }
+        .correct-border {
+            border: 2px solid #10b981;
+        }
+        .incorrect-border {
+            border: 2px solid #ef4444;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Style for Explanation in feedback */
+        .feedback-explanation {
+            display: block;
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin-top: 0.5rem;
+            font-weight: normal;
+        }
+        /* Style for Hint */
+        .hint-text {
+            font-style: italic;
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+         /* Leaderboard Styles */
+         #leaderboard {
+             margin-top: 2rem;
+             padding: 1.5rem;
+             background-color: #fff;
+             border-radius: 0.5rem;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         #leaderboard h2 {
+             text-align: center;
+             margin-bottom: 1rem;
+             font-size: 1.5rem;
+             font-weight: bold;
+             color: #374151;
+         }
+         #leaderboard ol {
+             list-style-position: inside;
+             padding-left: 0; /* Reset default padding */
+         }
+          #leaderboard li {
+             padding: 0.5rem 0;
+             border-bottom: 1px solid #e5e7eb;
+             font-size: 1.1rem;
+             display: flex;
+             justify-content: space-between;
+         }
+         #leaderboard li:last-child {
+             border-bottom: none;
+         }
+          #leaderboard li span:first-child { /* Name */
+             font-weight: 600;
+             color: #1f2937;
+          }
+           #leaderboard li span:last-child { /* Score */
+              font-weight: bold;
+              color: #10b981;
+           }
+           #leaderboard .no-scores {
+               text-align: center;
+               color: #6b7280;
+           }
+            /* Style for Clear Leaderboard Button */
+           #clear-leaderboard-button {
+                display: block; /* Make it a block element to take full width */
+                width: fit-content; /* Adjust width to content */
+                margin: 1rem auto 0; /* Center the button and add top margin */
+                background-color: #dc2626; /* Red 600 */
+                color: white;
+                font-weight: bold;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.375rem;
+                transition: background-color 0.2s ease-in-out;
+                cursor: pointer;
+           }
+            #clear-leaderboard-button:hover {
+                background-color: #ef4444; /* Red 500 */
+            }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="p-4">
+    <div class="container mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Individual Quiz Challenge</h1>
+
+        <div id="name-entry" class="text-center mb-6">
+            <label for="user-name" class="block text-lg font-medium text-gray-700 mb-2">Enter Your Name:</label>
+            <input type="text" id="user-name" name="user-name" placeholder="Your Name" class="w-full max-w-sm mx-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4" required>
+            <button id="start-quiz-button" class="w-full max-w-sm mx-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition duration-200 ease-in-out">
+                Start Quiz
+            </button>
+            <p id="name-error" class="text-red-500 text-sm mt-2 hidden">Please enter your name.</p>
+        </div>
+
+        
+        <div id="quiz" class="hidden">
+            
+        </div>
+
+        
+        <div id="question-feedback" class="mt-4 text-center text-lg font-semibold hidden">
+            
+        </div>
+
+        
+        <button id="next-question-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition duration-200 ease-in-out mt-4 hidden">
+             Next Question
+        </button>
+
+        
+         <div id="quiz-complete-section" class="hidden mt-8 text-center">
+            <div id="quiz-complete-message" class="text-2xl font-bold text-green-700">
+                 Quiz Complete!
+            </div>
+             <div id="final-score-message" class="mt-2 text-xl font-semibold text-gray-700">
+                  {/* Final score message here */}
+             </div>
+            <button id="play-again-button" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition duration-200 ease-in-out">
+                 Play Again
+            </button>
+        </div>
+
+        
+        <div id="leaderboard" class="hidden">
+            <h2>Leaderboard</h2>
+            <div id="leaderboard-list">
+                
+            </div>
+            <button id="clear-leaderboard-button">Clear Leaderboard</button> 
+        </div>
+
+    </div>
+
+    <script>
+        // Quiz data (same as before)
+        const quizData = [
+             {
+               "question": "What is the basic structure of a Multi-Layer Perceptron (MLP)?",
+               "options": ["Single layer", "Multiple layers of perceptrons", "Only output layer", "No hidden layers", "One neuron per layer", "Circular structure", "Single neuron"],
+               "correctAnswer": "Multiple layers of perceptrons",
+               "explanation": "MLP is formed with multiple layers of perceptrons where each neuron is connected forward to the next layer.",
+               "hint": "Think about stacking perceptrons one after another."
+             },
+             {
+               "question": "What learning algorithm is commonly used in MLPs?",
+               "options": ["Support Vector Machine", "Backpropagation", "K-means clustering", "Principal Component Analysis", "Decision Tree", "Random Forest", "Adaboost"],
+               "correctAnswer": "Backpropagation",
+               "explanation": "Backpropagation adjusts weights based on errors to improve MLP predictions.",
+               "hint": "It moves errors backward through the network."
+             },
+              // ... (rest of the quizData array remains the same) ...
+             {
+               "question": "What does L2 Regularization penalize?",
+               "options": ["Weights", "Biases", "Gradients", "Learning Rate", "Input Data", "Batch Size", "Hidden Layers"],
+               "correctAnswer": "Weights",
+               "explanation": "L2 regularization penalizes large weight magnitudes to reduce overfitting.",
+               "hint": "It discourages large weights."
+             }
+        ];
+
+        // --- Configuration ---
+        const ADMIN_PIN = "1234"; // Define the 4-digit PIN
+
+        // Get DOM elements
+        const nameEntryDiv = document.getElementById('name-entry');
+        const userNameInput = document.getElementById('user-name');
+        const nameError = document.getElementById('name-error');
+        const startQuizButton = document.getElementById('start-quiz-button');
+        const quizDiv = document.getElementById('quiz');
+        const questionFeedbackDiv = document.getElementById('question-feedback');
+        const nextQuestionButton = document.getElementById('next-question-button');
+        const quizCompleteSection = document.getElementById('quiz-complete-section');
+        const quizCompleteMessage = document.getElementById('quiz-complete-message');
+        const finalScoreMessage = document.getElementById('final-score-message');
+        const playAgainButton = document.getElementById('play-again-button');
+        const leaderboardDiv = document.getElementById('leaderboard');
+        const leaderboardListDiv = document.getElementById('leaderboard-list');
+        const clearLeaderboardButton = document.getElementById('clear-leaderboard-button'); // Get the new button
+
+
+        // Game state variables
+        let currentUser = { name: '', score: 0 };
+        let currentQuestionIndex = 0;
+        let leaderboardData = []; // Holds leaderboard {name, score} objects
+
+        // --- Initialization ---
+        function initApp() {
+            // Load leaderboard from localStorage on page load
+            loadLeaderboard();
+            displayLeaderboard(); // Show leaderboard immediately if scores exist
+
+            // Reset UI to initial state (name entry)
+            nameEntryDiv.classList.remove('hidden');
+            quizDiv.classList.add('hidden');
+            questionFeedbackDiv.classList.add('hidden');
+            nextQuestionButton.classList.add('hidden');
+            quizCompleteSection.classList.add('hidden');
+            leaderboardDiv.classList.remove('hidden'); // Keep leaderboard visible initially
+            userNameInput.value = ''; // Clear name input
+        }
+
+        // --- Leaderboard Functions ---
+        function loadLeaderboard() {
+            const storedLeaderboard = localStorage.getItem('quizLeaderboard');
+            if (storedLeaderboard) {
+                leaderboardData = JSON.parse(storedLeaderboard);
+            } else {
+                leaderboardData = [];
+            }
+        }
+
+        function saveLeaderboard() {
+            localStorage.setItem('quizLeaderboard', JSON.stringify(leaderboardData));
+        }
+
+        function updateLeaderboard(name, score) {
+            loadLeaderboard(); // Get the latest from storage
+            leaderboardData.push({ name, score });
+            // Sort by score descending
+            leaderboardData.sort((a, b) => b.score - a.score);
+             // Optional: Keep only top N scores
+            // leaderboardData = leaderboardData.slice(0, 10);
+            saveLeaderboard();
+            displayLeaderboard(); // Update the displayed list
+        }
+
+        function displayLeaderboard() {
+             leaderboardListDiv.innerHTML = ''; // Clear previous list
+             if (leaderboardData.length === 0) {
+                 leaderboardListDiv.innerHTML = '<p class="no-scores">No scores yet. Be the first!</p>';
+             } else {
+                 const list = document.createElement('ol');
+                 leaderboardData.forEach((entry, index) => {
+                     const listItem = document.createElement('li');
+                     // Add rank dynamically based on sorted position
+                     listItem.innerHTML = `<span>${index + 1}. ${entry.name}</span> <span>${entry.score}</span>`;
+                     list.appendChild(listItem);
+                 });
+                 leaderboardListDiv.appendChild(list);
+             }
+              leaderboardDiv.classList.remove('hidden'); // Ensure leaderboard is visible
+        }
+
+        // --- Quiz Flow Functions ---
+        function handleStartQuiz() {
+            const name = userNameInput.value.trim();
+            if (name === '') {
+                nameError.classList.remove('hidden');
+                return;
+            }
+            nameError.classList.add('hidden');
+
+            currentUser = { name: name, score: 0 };
+            currentQuestionIndex = 0;
+
+            nameEntryDiv.classList.add('hidden');
+            quizDiv.classList.remove('hidden');
+            quizCompleteSection.classList.add('hidden'); // Hide completion section if replaying
+             leaderboardDiv.classList.add('hidden'); // Hide leaderboard during quiz
+
+
+            loadQuestion(currentQuestionIndex);
+        }
+
+        function loadQuestion(index) {
+            if (index >= quizData.length) {
+                endQuiz();
+                return;
+            }
+
+            const currentQuestion = quizData[index];
+            const options = [...currentQuestion.options]; // Use original options
+
+            const questionBlockHTML = `
+                <div class="question-block" id="question-${index}">
+                    <div class="question text-lg font-semibold mb-2 text-gray-900">${index + 1}. ${currentQuestion.question}</div>
+                    ${currentQuestion.hint ? `<div class="hint-text">Hint: ${currentQuestion.hint}</div>` : ''}
+                    <div class="options text-gray-700">
+                        ${options.map((option, optionIndex) => {
+                            const optionLetter = String.fromCharCode(97 + optionIndex);
+                            return `<label class="option-label">
+                                    <input type="radio" name="currentQuestionOptions" value="${option}" data-question-index="${index}">
+                                    <span>${optionLetter}) ${option}</span>
+                                </label>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+
+            quizDiv.innerHTML = questionBlockHTML;
+            questionFeedbackDiv.classList.add('hidden');
+            nextQuestionButton.classList.add('hidden');
+
+            // Add event listeners to the newly created radio buttons
+            const radioButtons = quizDiv.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(button => {
+                button.addEventListener('change', handleAnswerSelection);
+            });
+        }
+
+
+        function handleAnswerSelection(event) {
+            const selectedRadioButton = event.target;
+            const questionIndex = parseInt(selectedRadioButton.dataset.questionIndex);
+            const userAnswer = selectedRadioButton.value;
+            const currentQuestion = quizData[questionIndex];
+            const questionBlock = document.getElementById(`question-${questionIndex}`);
+            const optionsDiv = questionBlock.querySelector('.options');
+            const labels = optionsDiv.querySelectorAll('.option-label');
+            const radioButtonsForQuestion = optionsDiv.querySelectorAll('input[type="radio"]');
+
+            // Disable all radio buttons for this question after an answer is selected
+            radioButtonsForQuestion.forEach(button => {
+                button.disabled = true;
+            });
+
+            // Find the label corresponding to the selected answer and the correct answer
+            let selectedLabel = null;
+            let correctLabel = null;
+            labels.forEach(label => {
+                const radio = label.querySelector('input');
+                if (radio.value === userAnswer) {
+                    selectedLabel = label;
+                }
+                if (radio.value === currentQuestion.correctAnswer) {
+                    correctLabel = label;
+                }
+                // Add disabled styling to all labels now
+                 label.classList.add('disabled-option');
+            });
+
+            // Provide feedback
+            if (userAnswer === currentQuestion.correctAnswer) {
+                currentUser.score++;
+                if (selectedLabel) selectedLabel.classList.add('correct-option-highlight');
+                 questionBlock.classList.add('correct-border');
+                questionFeedbackDiv.innerHTML = `✅ Correct! <span class="feedback-explanation">${currentQuestion.explanation}</span>`;
+                questionFeedbackDiv.classList.remove('hidden', 'text-red-600');
+                questionFeedbackDiv.classList.add('text-green-600');
+            } else {
+                 if (selectedLabel) selectedLabel.classList.add('incorrect-option-highlight');
+                 if (correctLabel) {
+                    correctLabel.classList.remove('disabled-option'); // Ensure correct one is visible
+                    correctLabel.classList.add('correct-option-highlight'); // Highlight the correct one
+                 }
+                 questionBlock.classList.add('incorrect-border');
+                 questionFeedbackDiv.innerHTML = `❌ Incorrect. The correct answer was: ${currentQuestion.correctAnswer}. <span class="feedback-explanation">${currentQuestion.explanation}</span>`;
+                 questionFeedbackDiv.classList.remove('hidden', 'text-green-600');
+                 questionFeedbackDiv.classList.add('text-red-600');
+            }
+
+            // Show the "Next Question" button
+            nextQuestionButton.classList.remove('hidden');
+        }
+
+        function handleNextQuestionClick() {
+             currentQuestionIndex++;
+             loadQuestion(currentQuestionIndex); // Will call endQuiz if index is out of bounds
+        }
+
+        function endQuiz() {
+            quizDiv.classList.add('hidden');
+            nextQuestionButton.classList.add('hidden');
+            questionFeedbackDiv.classList.add('hidden');
+
+            // Display final score message
+             finalScoreMessage.textContent = `Well done, ${currentUser.name}! Your final score is ${currentUser.score} out of ${quizData.length}.`;
+             quizCompleteSection.classList.remove('hidden');
+
+
+            // Update and display leaderboard
+            updateLeaderboard(currentUser.name, currentUser.score);
+             leaderboardDiv.classList.remove('hidden'); // Ensure leaderboard is shown at the end
+        }
+
+        // --- Clear Leaderboard Function ---
+        function handleClearLeaderboard() {
+            const enteredPIN = prompt("Enter PIN to clear leaderboard:"); // Use prompt for PIN input
+
+            // Check if the entered PIN is correct
+            if (enteredPIN === ADMIN_PIN) {
+                localStorage.removeItem('quizLeaderboard'); // Clear data from local storage
+                leaderboardData = []; // Reset the leaderboard data array
+                displayLeaderboard(); // Update the displayed leaderboard (will show "No scores yet")
+                alert("Leaderboard cleared successfully!");
+            } else {
+                alert("Incorrect PIN."); // Show error for incorrect PIN
+            }
+        }
+
+
+        // Add event listeners
+        startQuizButton.addEventListener('click', handleStartQuiz);
+        nextQuestionButton.addEventListener('click', handleNextQuestionClick);
+        playAgainButton.addEventListener('click', initApp); // Reset the app to play again
+        clearLeaderboardButton.addEventListener('click', handleClearLeaderboard); // Add event listener for the new button
+
+
+        // Initialize the application on page load
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
